@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم الموظفين - الدعم الفني لصيانة السيارات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --maroon-deep:#3a0c15;
+    --maroon:#6e1423;
+    --maroon-light:#9c2a3a;
+    --gold:#c9a227;
+    --gold-light:#e6c85a;
+    --cream:#f6efe4;
+    --cream-2:#efe4d1;
+    --ink:#241012;
+    --ink-soft:#5a3a3f;
+    --ok:#2e8b57;
+    --warn:#c98a1c;
+    --busy:#b23a3a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Tajawal', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height:100vh;
+  }
+  a{color:inherit; text-decoration:none;}
+  button, input{font-family:inherit; font-size:15px;}
+  button{cursor:pointer; border:none;}
+
+  .wrap{
+    max-width:560px;
+    margin:0 auto;
+    background:var(--cream);
+    min-height:100vh;
+    box-shadow:0 0 60px rgba(0,0,0,.15);
+    position:relative;
+  }
+
+  .hero{
+    background: radial-gradient(120% 90% at 50% -10%, var(--maroon-light) 0%, var(--maroon) 45%, var(--maroon-deep) 100%);
+    padding:30px 24px;
+    text-align:center;
+    color:#fff;
+  }
+  .hero h1{
+    font-family:'Cairo', sans-serif;
+    font-weight:900;
+    font-size:22px;
+    color:var(--gold-light);
+  }
+  .hero p{ margin-top:6px; color:#e9d6b8; font-size:14px; }
+
+  /* ---------- LOGIN ---------- */
+  .login-box{
+    padding:40px 24px;
+    text-align:center;
+  }
+  .login-box .lock{ font-size:44px; margin-bottom:14px; }
+  .login-box label{
+    display:block;
+    font-weight:700;
+    margin-bottom:10px;
+    color:var(--ink-soft);
+  }
+  .pin-input{
+    width:100%;
+    max-width:220px;
+    padding:16px;
+    font-size:24px;
+    text-align:center;
+    letter-spacing:8px;
+    border:2px solid var(--cream-2);
+    border-radius:14px;
+    background:#fff;
+    outline:none;
+  }
+  .pin-input:focus{ border-color: var(--gold); }
+  .login-btn{
+    display:block;
+    width:100%;
+    max-width:220px;
+    margin:16px auto 0;
+    padding:14px;
+    border-radius:14px;
+    background:var(--maroon);
+    color:#fff;
+    font-weight:800;
+    font-size:16px;
+  }
+  .login-btn:active{ transform:scale(.98); }
+  .login-error{
+    color:var(--busy);
+    font-weight:700;
+    margin-top:12px;
+    min-height:20px;
+    font-size:14px;
+  }
+
+  /* ---------- DASHBOARD ---------- */
+  .dash{ display:none; padding:20px; }
+  .dash.active{ display:block; }
+
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+  }
+  .logout-btn{
+    background:none;
+    color:var(--maroon);
+    font-weight:700;
+    font-size:14px;
+    text-decoration:underline;
+  }
+
+  .section-title{
+    font-family:'Cairo', sans-serif;
+    font-weight:800;
+    font-size:17px;
+    color:var(--maroon-deep);
+    margin:22px 0 12px;
+  }
+
+  .branch-card{
+    background:#fff;
+    border-radius:16px;
+    padding:18px;
+    margin-bottom:14px;
+    border:1px solid var(--cream-2);
+  }
+  .branch-card .name{
+    font-weight:800;
+    font-size:16px;
+    margin-bottom:12px;
+  }
+  .counter-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:12px;
+  }
+  .counter-btn{
+    width:44px; height:44px;
+    border-radius:50%;
+    background:var(--cream-2);
+    color:var(--maroon-deep);
+    font-size:22px;
+    font-weight:900;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .counter-btn:active{ background:var(--gold-light); }
+  .counter-value{
+    font-family:'Cairo', sans-serif;
+    font-weight:900;
+    font-size:32px;
+    min-width:60px;
+    text-align:center;
+    color:var(--maroon);
+  }
+  .save-btn{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    background:var(--gold);
+    color:var(--maroon-deep);
+    font-weight:800;
+  }
+  .save-msg{
+    text-align:center;
+    font-size:13px;
+    margin-top:8px;
+    min-height:18px;
+    font-weight:700;
+  }
+  .save-msg.ok{ color:var(--ok); }
+  .save-msg.err{ color:var(--busy); }
+
+  .booking-card{
+    background:#fff;
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:12px;
+    border:1px solid var(--cream-2);
+    border-right:5px solid var(--gold);
+  }
+  .booking-card .row{
+    display:flex;
+    justify-content:space-between;
+    font-size:14px;
+    padding:3px 0;
+  }
+  .booking-card .row span:first-child{ color:var(--ink-soft); font-weight:700; }
+  .booking-card .row span:last-child{ font-weight:700; }
+  .booking-empty{
+    text-align:center;
+    color:var(--ink-soft);
+    padding:30px 0;
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>لوحة تحكم الموظفين</h1>
+    <p>شركة الدعم الفني لصيانة السيارات</p>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="loginBox" class="login-box">
+    <div class="lock">🔒</div>
+    <label for="pinInput">أدخل رمز الدخول (PIN)</label>
+    <input type="password" id="pinInput" class="pin-input" maxlength="4" inputmode="numeric" placeholder="••••">
+    <button class="login-btn" id="loginBtn">دخول</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dash" class="dash">
+    <div class="topbar">
+      <div style="font-weight:800;">مرحباً 👋</div>
+      <button class="logout-btn" id="logoutBtn">تسجيل الخروج</button>
+    </div>
+
+    <div class="section-title">تحديث حالة الازدحام</div>
+
+    <div class="branch-card">
+      <div class="name">فرع حي الجوهرة</div>
+      <div class="counter-row">
+        <button class="counter-btn" data-branch="johara" data-action="minus">−</button>
+        <div class="counter-value" id="count-johara">0</div>
+        <button class="counter-btn" data-branch="johara" data-action="plus">+</button>
+      </div>
+      <button class="save-btn" data-branch="johara">حفظ التحديث</button>
+      <div class="save-msg" id="msg-johara"></div>
+    </div>
+
+    <div class="branch-card">
+      <div class="name">فرع حي قويزة</div>
+      <div class="counter-row">
+        <button class="counter-btn" data-branch="quwaiza" data-action="minus">−</button>
+        <div class="counter-value" id="count-quwaiza">0</div>
+        <button class="counter-btn" data-branch="quwaiza" data-action="plus">+</button>
+      </div>
+      <button class="save-btn" data-branch="quwaiza">حفظ التحديث</button>
+      <div class="save-msg" id="msg-quwaiza"></div>
+    </div>
+
+    <div class="branch-card">
+      <div class="name">فرع حي المنار</div>
+      <div class="counter-row">
+        <button class="counter-btn" data-branch="manar" data-action="minus">−</button>
+        <div class="counter-value" id="count-manar">0</div>
+        <button class="counter-btn" data-branch="manar" data-action="plus">+</button>
+      </div>
+      <button class="save-btn" data-branch="manar">حفظ التحديث</button>
+      <div class="save-msg" id="msg-manar"></div>
+    </div>
+
+    <div class="section-title">أحدث طلبات الحجز</div>
+    <div id="bookingsList"><div class="booking-empty">جاري التحميل...</div></div>
+  </div>
+
+</div>
+
+<script>
+  // ============= FIREBASE CONFIG =============
+  const firebaseConfig = {
+    apiKey: "AIzaSyANGcDGAPa2J6rs0wzdX8GezS4_8oxJWzI",
+    authDomain: "alda3m-alfani.firebaseapp.com",
+    projectId: "alda3m-alfani",
+    storageBucket: "alda3m-alfani.firebasestorage.app",
+    messagingSenderId: "669155403279",
+    appId: "1:669155403279:web:ccce8af02eac0d5226257a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const ADMIN_PIN = "1234"; // غيّره لرقم أصعب لاحقاً
+  const branches = ["johara", "quwaiza", "manar"];
+  const branchNames = { johara: "فرع حي الجوهرة", quwaiza: "فرع حي قويزة", manar: "فرع حي المنار" };
+
+  // ---------- LOGIN ----------
+  document.getElementById('loginBtn').addEventListener('click', tryLogin);
+  document.getElementById('pinInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') tryLogin();
+  });
+
+  function tryLogin(){
+    const val = document.getElementById('pinInput').value.trim();
+    const errEl = document.getElementById('loginError');
+    if(val === ADMIN_PIN){
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('dash').classList.add('active');
+      initDashboard();
+    } else {
+      errEl.textContent = 'رمز غير صحيح، حاول مرة أخرى';
+      document.getElementById('pinInput').value = '';
+    }
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    document.getElementById('dash').classList.remove('active');
+    document.getElementById('loginBox').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('loginError').textContent = '';
+  });
+
+  // ---------- COUNTERS ----------
+  let initialized = false;
+  function initDashboard(){
+    if(initialized) return;
+    initialized = true;
+
+    branches.forEach(function(branchId){
+      db.collection('branches').doc(branchId).get().then(function(doc){
+        const val = doc.exists ? (doc.data().carsWaiting || 0) : 0;
+        document.getElementById('count-' + branchId).textContent = val;
+      });
+    });
+
+    document.querySelectorAll('.counter-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const branch = btn.dataset.branch;
+        const action = btn.dataset.action;
+        const el = document.getElementById('count-' + branch);
+        let val = parseInt(el.textContent, 10) || 0;
+        if(action === 'plus') val++;
+        else if(action === 'minus' && val > 0) val--;
+        el.textContent = val;
+      });
+    });
+
+    document.querySelectorAll('.save-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const branch = btn.dataset.branch;
+        const val = parseInt(document.getElementById('count-' + branch).textContent, 10) || 0;
+        const msgEl = document.getElementById('msg-' + branch);
+        msgEl.className = 'save-msg';
+        msgEl.textContent = 'جاري الحفظ...';
+        db.collection('branches').doc(branch).set({
+          carsWaiting: val,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function(){
+          msgEl.className = 'save-msg ok';
+          msgEl.textContent = 'تم التحديث بنجاح ✓';
+          setTimeout(function(){ msgEl.textContent = ''; }, 3000);
+        }).catch(function(err){
+          console.error(err);
+          msgEl.className = 'save-msg err';
+          msgEl.textContent = 'حدث خطأ، حاول مرة أخرى';
+        });
+      });
+    });
+
+    // ---------- BOOKINGS LIST ----------
+    db.collection('bookings').orderBy('createdAt', 'desc').limit(20)
+      .onSnapshot(function(snap){
+        const listEl = document.getElementById('bookingsList');
+        if(snap.empty){
+          listEl.innerHTML = '<div class="booking-empty">لا توجد حجوزات حتى الآن</div>';
+          return;
+        }
+        let html = '';
+        snap.forEach(function(doc){
+          const d = doc.data();
+          const branchLabel = branchNames[d.branch] || d.branch || '-';
+          html += '<div class="booking-card">' +
+            '<div class="row"><span>الشركة</span><span>' + escapeHtml(d.company || '-') + '</span></div>' +
+            '<div class="row"><span>المسؤول</span><span>' + escapeHtml(d.contact || '-') + '</span></div>' +
+            '<div class="row"><span>الجوال</span><span>' + escapeHtml(d.phone || '-') + '</span></div>' +
+            '<div class="row"><span>الفرع</span><span>' + escapeHtml(branchLabel) + '</span></div>' +
+            '<div class="row"><span>التاريخ</span><span>' + escapeHtml(d.date || '-') + '</span></div>' +
+            '<div class="row"><span>الوقت</span><span>' + escapeHtml(d.time || '-') + '</span></div>' +
+            (d.notes ? '<div class="row"><span>ملاحظات</span><span>' + escapeHtml(d.notes) + '</span></div>' : '') +
+            '</div>';
+        });
+        listEl.innerHTML = html;
+      }, function(err){
+        console.error(err);
+        document.getElementById('bookingsList').innerHTML = '<div class="booking-empty">تعذر تحميل الحجوزات</div>';
+      });
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+</script>
+</body>
+</html>
