@@ -12,6 +12,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
 <style>
   :root{
     --maroon-deep:#3a0c15;
@@ -567,6 +570,11 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
+  // ============= EMAILJS CONFIG =============
+  emailjs.init({ publicKey: "NJ0cGMwlo9YuJgBnH" });
+  const EMAILJS_SERVICE_ID = "service_rewtdvd";
+  const EMAILJS_TEMPLATE_ID = "template_6ivw6gp";
+
   const branches = ["johara", "quwaiza", "manar"];
 
   function renderStatus(elId, carsWaiting){
@@ -615,6 +623,13 @@
       return;
     }
 
+    const branchNames = {
+      johara: 'فرع حي الجوهرة',
+      quwaiza: 'فرع حي قويزة',
+      manar: 'فرع حي المنار'
+    };
+    const branchLabel = branchNames[branch] || branch;
+
     db.collection('bookings').add({
       company: company,
       contact: contact,
@@ -634,6 +649,19 @@
       document.getElementById('bookingDate').value = '';
       document.getElementById('bookingTime').value = '';
       document.getElementById('notes').value = '';
+
+      // إرسال إشعار إيميل فوري عن الحجز الجديد
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        company: company,
+        contact: contact,
+        phone: phone,
+        branch: branchLabel,
+        date: date,
+        time: time,
+        notes: notes || 'لا توجد'
+      }).catch(function(emailErr){
+        console.error('EmailJS error:', emailErr);
+      });
     }).catch(function(err){
       console.error(err);
       msgEl.className = 'error';
