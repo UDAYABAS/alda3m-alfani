@@ -7,6 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <style>
   :root{
     --maroon-deep:#3a0c15;
@@ -19,6 +24,9 @@
     --ink:#241012;
     --ink-soft:#5a3a3f;
     --whatsapp:#25D366;
+    --ok:#2e8b57;
+    --warn:#c98a1c;
+    --busy:#b23a3a;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
@@ -30,10 +38,11 @@
     -webkit-font-smoothing:antialiased;
   }
   a{color:inherit; text-decoration:none;}
-  button{font-family:inherit; cursor:pointer; border:none;}
+  button, input, select, textarea{font-family:inherit; font-size:15px;}
+  button{cursor:pointer; border:none;}
 
   .wrap{
-    max-width:520px;
+    max-width:560px;
     margin:0 auto;
     background:var(--cream);
     min-height:100vh;
@@ -67,7 +76,7 @@
     transform:scaleX(1.4);
   }
   .badge-ring{
-    width:118px; height:118px;
+    width:110px; height:110px;
     margin:0 auto 16px;
     border-radius:50%;
     background:
@@ -87,7 +96,7 @@
   .hero h1{
     font-family:'Cairo', sans-serif;
     font-weight:900;
-    font-size:26px;
+    font-size:24px;
     line-height:1.35;
     letter-spacing:.5px;
     position:relative; z-index:2;
@@ -100,60 +109,45 @@
     position:relative; z-index:2;
   }
   .hero p.tag{
-    font-size:14.5px;
+    font-size:14px;
     font-weight:500;
     color:var(--cream-2);
     letter-spacing:.3px;
     position:relative; z-index:2;
   }
-  .hero .pill{
-    display:inline-block;
-    margin-top:16px;
-    padding:6px 18px;
-    border:1px solid rgba(230,200,90,.5);
-    border-radius:999px;
-    font-size:12.5px;
-    font-weight:700;
-    color:var(--gold-light);
-    letter-spacing:.5px;
-    position:relative; z-index:2;
-  }
-
-  /* ---------- GAUGE DIVIDER (signature element) ---------- */
-  .gauge-divider{
+  .hero-actions{
     display:flex;
-    align-items:center;
-    justify-content:center;
     gap:10px;
-    padding:6px 24px 22px;
-    color:var(--maroon);
+    justify-content:center;
+    margin-top:20px;
+    position:relative; z-index:2;
+    flex-wrap:wrap;
   }
-  .gauge-divider .line{
-    flex:1;
-    height:1px;
-    background:linear-gradient(90deg, transparent, var(--maroon-light) 50%, transparent);
-    opacity:.35;
-  }
-  .gauge-divider svg{ width:34px; height:34px; flex-shrink:0; }
-  .section-label{
+  .hero-btn{
+    padding:10px 18px;
+    border-radius:999px;
     font-family:'Cairo', sans-serif;
     font-weight:800;
-    font-size:12.5px;
-    letter-spacing:1.5px;
-    color:var(--maroon);
-    text-align:center;
-    margin-bottom:2px;
+    font-size:13px;
+  }
+  .hero-btn.primary{
+    background:linear-gradient(135deg, var(--gold), var(--gold-light));
+    color:var(--maroon-deep);
+  }
+  .hero-btn.ghost{
+    border:1px solid rgba(230,200,90,.6);
+    color:var(--gold-light);
   }
 
-  /* ---------- ABOUT ---------- */
-  .about{ padding:0 26px 8px; text-align:center; }
-  .about p{
-    font-size:14.5px;
-    line-height:1.9;
-    color:var(--ink-soft);
+  /* ---------- GAUGE DIVIDER ---------- */
+  .gauge-divider{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:6px 24px 22px;
   }
+  .gauge-divider .line{ flex:1; height:1px; background:linear-gradient(90deg, transparent, var(--maroon-light) 50%, transparent); opacity:.35; }
+  .gauge-divider svg{ width:32px; height:32px; flex-shrink:0; }
 
-  /* ---------- SECTION TITLES ---------- */
+  /* ---------- SECTIONS ---------- */
   .section{ padding:26px 20px 6px; }
   .section-title{
     font-family:'Cairo', sans-serif;
@@ -161,8 +155,7 @@
     font-size:18px;
     color:var(--maroon);
     text-align:center;
-    margin-bottom:16px;
-    position:relative;
+    margin-bottom:6px;
   }
   .section-title .en-sub{
     display:block;
@@ -174,6 +167,16 @@
     margin-top:3px;
     text-transform:uppercase;
   }
+  .section-sub{
+    text-align:center;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:16px;
+    line-height:1.7;
+  }
+
+  .about{ padding:0 26px 8px; text-align:center; }
+  .about p{ font-size:14.5px; line-height:1.9; color:var(--ink-soft); }
 
   /* ---------- BRANCH CARDS ---------- */
   .branch-card{
@@ -187,177 +190,102 @@
     overflow:hidden;
   }
   .branch-card::before{
-    content:"";
-    position:absolute; top:0; right:0; bottom:0;
-    width:5px;
+    content:""; position:absolute; top:0; right:0; bottom:0; width:5px;
     background:linear-gradient(180deg, var(--gold), var(--maroon));
   }
-  .branch-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:8px;
-  }
-  .branch-name{
-    font-family:'Cairo', sans-serif;
-    font-weight:800;
-    font-size:15.5px;
-    color:var(--maroon-deep);
-  }
-  .branch-icon{
-    width:32px; height:32px;
-    border-radius:50%;
-    background:var(--maroon);
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
-  }
+  .branch-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+  .branch-name{ font-family:'Cairo', sans-serif; font-weight:800; font-size:15.5px; color:var(--maroon-deep); }
+  .branch-icon{ width:32px; height:32px; border-radius:50%; background:var(--maroon); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .branch-icon svg{ width:17px; height:17px; fill:var(--gold-light); }
-  .branch-loc{
-    font-size:13px;
-    color:var(--ink-soft);
+  .branch-loc{ font-size:13px; color:var(--ink-soft); margin-bottom:12px; }
+
+  .status-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:800; font-family:'Cairo', sans-serif;
     margin-bottom:12px;
-    display:flex;
-    align-items:center;
-    gap:6px;
   }
+  .status-pill .dot{ width:8px; height:8px; border-radius:50%; }
+  .status-ok{ background:#e8f5ee; color:var(--ok); }
+  .status-ok .dot{ background:var(--ok); }
+  .status-warn{ background:#fbf1de; color:var(--warn); }
+  .status-warn .dot{ background:var(--warn); }
+  .status-busy{ background:#fbe8e8; color:var(--busy); }
+  .status-busy .dot{ background:var(--busy); }
+  .status-loading{ background:#f0f0f0; color:#999; }
+  .status-loading .dot{ background:#bbb; }
+
   .btn-row{ display:flex; gap:10px; }
   .btn{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    padding:10px 8px;
-    border-radius:10px;
-    font-size:13.5px;
-    font-weight:700;
-    transition:transform .15s ease, box-shadow .15s ease;
+    flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+    padding:10px 8px; border-radius:10px; font-size:13.5px; font-weight:700;
   }
   .btn:active{ transform:scale(.96); }
   .btn svg{ width:16px; height:16px; flex-shrink:0; }
-  .btn-call{
-    background:var(--maroon);
-    color:#fff;
-  }
-  .btn-whats{
-    background:var(--whatsapp);
-    color:#fff;
-  }
-  .btn-map{
-    background:var(--cream-2);
-    color:var(--maroon-deep);
-    border:1px solid #e0d3ba;
-  }
+  .btn-call{ background:var(--maroon); color:#fff; }
+  .btn-whats{ background:var(--whatsapp); color:#fff; }
 
-  /* ---------- WORKING HOURS ---------- */
-  .hours-card{
+  /* ---------- BOOKING FORM ---------- */
+  .booking-card{
     background:#fff;
     border:1px solid var(--cream-2);
-    border-radius:16px;
-    padding:6px 18px;
-    box-shadow:0 4px 16px rgba(110,20,35,.06);
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 6px 22px rgba(110,20,35,.08);
   }
-  .hours-row{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:13px 0;
+  .field{ margin-bottom:14px; }
+  .field label{
+    display:block; font-size:13px; font-weight:700; color:var(--maroon-deep);
+    margin-bottom:6px; font-family:'Cairo', sans-serif;
   }
-  .hours-row + .hours-row{
-    border-top:1px solid var(--cream-2);
+  .field input, .field select, .field textarea{
+    width:100%; padding:12px 14px; border:1.5px solid var(--cream-2);
+    border-radius:10px; background:var(--cream); color:var(--ink);
   }
-  .hours-icon{
-    width:34px; height:34px;
-    border-radius:50%;
-    background:var(--maroon);
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
+  .field textarea{ resize:vertical; min-height:70px; }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--gold);
   }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  #submitBooking{
+    width:100%; padding:14px; border-radius:12px; margin-top:4px;
+    background:linear-gradient(135deg, var(--maroon), var(--maroon-light));
+    color:#fff; font-family:'Cairo', sans-serif; font-weight:800; font-size:15px;
+  }
+  #submitBooking:active{ transform:scale(.98); }
+  #bookingMsg{
+    margin-top:12px; padding:12px; border-radius:10px; font-size:13px; font-weight:700;
+    text-align:center; display:none;
+  }
+  #bookingMsg.success{ display:block; background:#e8f5ee; color:var(--ok); }
+  #bookingMsg.error{ display:block; background:#fbe8e8; color:var(--busy); }
+
+  /* ---------- WORKING HOURS ---------- */
+  .hours-card{ background:#fff; border:1px solid var(--cream-2); border-radius:16px; padding:6px 18px; box-shadow:0 4px 16px rgba(110,20,35,.06); }
+  .hours-row{ display:flex; align-items:center; gap:12px; padding:13px 0; }
+  .hours-row + .hours-row{ border-top:1px solid var(--cream-2); }
+  .hours-icon{ width:34px; height:34px; border-radius:50%; background:var(--maroon); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .hours-icon svg{ width:18px; height:18px; }
   .hours-icon.closed-icon{ background:#f4e3e6; }
-  .hours-days{
-    font-family:'Cairo', sans-serif;
-    font-weight:800;
-    font-size:14.5px;
-    color:var(--ink);
-    flex:1;
-  }
-  .hours-days .en{
-    display:inline-block;
-    font-family:'Tajawal', sans-serif;
-    font-weight:500;
-    font-size:11px;
-    color:var(--ink-soft);
-    margin-right:6px;
-    direction:ltr;
-  }
-  .hours-time{
-    font-size:13.5px;
-    font-weight:700;
-    color:var(--maroon);
-    direction:ltr;
-  }
+  .hours-days{ font-family:'Cairo', sans-serif; font-weight:800; font-size:14.5px; color:var(--ink); flex:1; }
+  .hours-days .en{ display:inline-block; font-family:'Tajawal', sans-serif; font-weight:500; font-size:11px; color:var(--ink-soft); margin-right:6px; direction:ltr; }
+  .hours-time{ font-size:13.5px; font-weight:700; color:var(--maroon); direction:ltr; }
   .hours-row.closed .hours-days{ color:var(--maroon-light); }
-  .hours-time.closed-tag{
-    background:var(--maroon-light);
-    color:#fff;
-    padding:4px 12px;
-    border-radius:999px;
-    font-size:12px;
-    direction:rtl;
-  }
+  .hours-time.closed-tag{ background:var(--maroon-light); color:#fff; padding:4px 12px; border-radius:999px; font-size:12px; direction:rtl; }
 
   /* ---------- CONTACT PEOPLE ---------- */
   .contact-card{
     background:linear-gradient(135deg, #fff, var(--cream));
-    border:1px solid var(--cream-2);
-    border-radius:16px;
-    padding:16px 18px;
-    margin-bottom:14px;
-    display:flex;
-    align-items:center;
-    gap:14px;
-    box-shadow:0 4px 16px rgba(110,20,35,.06);
+    border:1px solid var(--cream-2); border-radius:16px; padding:16px 18px; margin-bottom:14px;
+    display:flex; align-items:center; gap:14px; box-shadow:0 4px 16px rgba(110,20,35,.06);
   }
-  .contact-card.vip{
-    background:linear-gradient(135deg, #fdf8ec, #f6ecd4);
-    border:1px solid var(--gold);
-  }
-  .avatar{
-    width:46px; height:46px;
-    border-radius:50%;
-    background:var(--maroon);
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
-    font-family:'Cairo', sans-serif;
-    font-weight:800;
-    color:var(--gold-light);
-    font-size:16px;
-  }
-  .contact-card.vip .avatar{ background:linear-gradient(135deg, var(--gold), var(--gold-light)); color:var(--maroon-deep); }
+  .avatar{ width:46px; height:46px; border-radius:50%; background:var(--maroon); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:'Cairo', sans-serif; font-weight:800; color:var(--gold-light); font-size:16px; }
   .contact-info{ flex:1; min-width:0; }
-  .contact-role{
-    font-size:11.5px;
-    font-weight:700;
-    color:var(--gold);
-    letter-spacing:.3px;
-    margin-bottom:2px;
-  }
-  .contact-card:not(.vip) .contact-role{ color:var(--maroon-light); }
-  .contact-name{
-    font-family:'Cairo', sans-serif;
-    font-weight:800;
-    font-size:15px;
-    color:var(--ink);
-    margin-bottom:8px;
-  }
+  .contact-role{ font-size:11.5px; font-weight:700; color:var(--maroon-light); letter-spacing:.3px; margin-bottom:2px; }
+  .contact-name{ font-family:'Cairo', sans-serif; font-weight:800; font-size:15px; color:var(--ink); margin-bottom:8px; }
   .contact-actions{ display:flex; gap:8px; }
-  .icon-btn{
-    width:36px; height:36px;
-    border-radius:10px;
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
-  }
+  .icon-btn{ width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .icon-btn svg{ width:17px; height:17px; }
   .icon-btn.call{ background:var(--maroon); }
   .icon-btn.call svg{ fill:#fff; }
@@ -366,16 +294,7 @@
 
   /* ---------- MAP LINKS ---------- */
   .map-list{ display:flex; flex-direction:column; gap:10px; }
-  .map-item{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    background:#fff;
-    border:1px solid var(--cream-2);
-    border-radius:14px;
-    padding:13px 16px;
-    box-shadow:0 4px 14px rgba(110,20,35,.05);
-  }
+  .map-item{ display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--cream-2); border-radius:14px; padding:13px 16px; box-shadow:0 4px 14px rgba(110,20,35,.05); }
   .map-item .icon-btn{ background:var(--maroon); }
   .map-item .icon-btn svg{ fill:var(--gold-light); }
   .map-text{ flex:1; }
@@ -384,24 +303,12 @@
   .map-arrow{ font-size:18px; color:var(--maroon-light); }
 
   /* ---------- FOOTER ---------- */
-  footer{
-    margin-top:20px;
-    padding:26px 24px 34px;
-    background:var(--maroon-deep);
-    color:var(--cream-2);
-    text-align:center;
-  }
-  footer .fname{
-    font-family:'Cairo', sans-serif;
-    font-weight:800;
-    font-size:14.5px;
-    color:var(--gold-light);
-    margin-bottom:6px;
-  }
+  footer{ margin-top:20px; padding:26px 24px 34px; background:var(--maroon-deep); color:var(--cream-2); text-align:center; }
+  footer .fname{ font-family:'Cairo', sans-serif; font-weight:800; font-size:14.5px; color:var(--gold-light); margin-bottom:6px; }
   footer .fsub{ font-size:11.5px; opacity:.7; letter-spacing:.5px; }
 
   @media (max-width:360px){
-    .hero h1{ font-size:22px; }
+    .hero h1{ font-size:21px; }
     .btn{ font-size:12px; padding:9px 6px; }
   }
 </style>
@@ -416,34 +323,35 @@
     </div>
     <h1>شركة الدعم الفني<br>لصيانة السيارات</h1>
     <div class="divider"></div>
-    <p class="tag">لصيانة السيارات والشاحنات</p>
-    <span class="pill">خبرة · جودة · ثقة</span>
+    <p class="tag">حلول صيانة متكاملة للشركات وأساطيل المركبات</p>
+    <div class="hero-actions">
+      <a href="#booking" class="hero-btn primary">احجز موعد فحص</a>
+      <a href="#branches" class="hero-btn ghost">فروعنا</a>
+    </div>
   </section>
 
-  <!-- GAUGE DIVIDER -->
   <div class="gauge-divider">
     <span class="line"></span>
     <svg viewBox="0 0 24 24"><path fill="none" stroke="#c9a227" stroke-width="1.6" d="M12 3a9 9 0 1 0 9 9M12 3v3M12 12l4-2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.3" fill="#c9a227"/></svg>
     <span class="line"></span>
   </div>
 
-  <!-- ABOUT -->
   <div class="about">
-    <p>نقدّم خدمات صيانة متكاملة للسيارات والشاحنات، بالإضافة إلى صيانة أنظمة التبريد والتكييف، بخبرة فنية عالية وفريق متخصص يضمن لك جودة الخدمة وسرعة الإنجاز.</p>
+    <p>نقدّم خدمات صيانة متكاملة للسيارات والشاحنات، بخبرة فنية عالية وفريق متخصص، مع تركيز خاص على خدمة أساطيل المركبات التابعة للشركات — سرعة في الفحص، جودة في التنفيذ، ومتابعة مستمرة لكل عميل.</p>
   </div>
 
-  <!-- BRANCHES -->
-  <div class="section">
-    <div class="section-title">فروعنا</div>
+  <!-- BRANCHES + LIVE STATUS -->
+  <div class="section" id="branches">
+    <div class="section-title">فروعنا وحالة الازدحام الآن</div>
+    <div class="section-sub">الحالة تتحدث لحظياً من موظفي كل فرع</div>
 
     <div class="branch-card">
       <div class="branch-head">
-        <span class="branch-name">الفرع الرئيسي</span>
-        <span class="branch-icon">
-          <svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11m-14 0h14m-14 0a2 2 0 0 0-2 2v4h2m14-6a2 2 0 0 1 2 2v4h-2M7 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm13 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg>
-        </span>
+        <span class="branch-name">فرع حي الجوهرة</span>
+        <span class="branch-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11m-14 0h14m-14 0a2 2 0 0 0-2 2v4h2m14-6a2 2 0 0 1 2 2v4h-2M7 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm13 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
       </div>
       <div class="branch-loc">📍 جدة – حي الجوهرة</div>
+      <div id="status-johara" class="status-pill status-loading"><span class="dot"></span><span class="txt">جاري التحميل...</span></div>
       <div class="btn-row">
         <a class="btn btn-call" href="tel:+966537995528"><svg viewBox="0 0 24 24" fill="#fff"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg>اتصال</a>
         <a class="btn btn-whats" target="_blank" href="https://wa.me/966537995528"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>واتساب</a>
@@ -452,20 +360,81 @@
 
     <div class="branch-card">
       <div class="branch-head">
-        <span class="branch-name">فرع الرياض – صيانة الثلاجات والدفايات</span>
-        <span class="branch-icon">
-          <svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11m-14 0h14m-14 0a2 2 0 0 0-2 2v4h2m14-6a2 2 0 0 1 2 2v4h-2M7 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm13 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg>
-        </span>
+        <span class="branch-name">فرع حي قويزة</span>
+        <span class="branch-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11m-14 0h14m-14 0a2 2 0 0 0-2 2v4h2m14-6a2 2 0 0 1 2 2v4h-2M7 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm13 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
       </div>
-      <div class="branch-loc">📍 الرياض – حي الصناعية</div>
+      <div class="branch-loc">📍 جدة – حي المنار</div>
+      <div id="status-quwaiza" class="status-pill status-loading"><span class="dot"></span><span class="txt">جاري التحميل...</span></div>
       <div class="btn-row">
-        <a class="btn btn-call" href="tel:+966532479948"><svg viewBox="0 0 24 24" fill="#fff"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg>اتصال</a>
-        <a class="btn btn-whats" target="_blank" href="https://wa.me/966532479948"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>واتساب</a>
+        <a class="btn btn-call" href="tel:+966537995528"><svg viewBox="0 0 24 24" fill="#fff"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg>اتصال</a>
+        <a class="btn btn-whats" target="_blank" href="https://wa.me/966537995528"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>واتساب</a>
+      </div>
+    </div>
+
+    <div class="branch-card">
+      <div class="branch-head">
+        <span class="branch-name">فرع حي المنار</span>
+        <span class="branch-icon"><svg viewBox="0 0 24 24"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11m-14 0h14m-14 0a2 2 0 0 0-2 2v4h2m14-6a2 2 0 0 1 2 2v4h-2M7 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm13 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
+      </div>
+      <div class="branch-loc">📍 جدة – حي قويزة</div>
+      <div id="status-manar" class="status-pill status-loading"><span class="dot"></span><span class="txt">جاري التحميل...</span></div>
+      <div class="btn-row">
+        <a class="btn btn-call" href="tel:+966500720919"><svg viewBox="0 0 24 24" fill="#fff"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg>اتصال</a>
+        <a class="btn btn-whats" target="_blank" href="https://wa.me/966500720919"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>واتساب</a>
       </div>
     </div>
   </div>
 
-  <!-- GAUGE DIVIDER -->
+  <div class="gauge-divider">
+    <span class="line"></span>
+    <svg viewBox="0 0 24 24"><path fill="none" stroke="#c9a227" stroke-width="1.6" d="M12 3a9 9 0 1 0 9 9M12 3v3M12 12l4-2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.3" fill="#c9a227"/></svg>
+    <span class="line"></span>
+  </div>
+
+  <!-- BOOKING FORM -->
+  <div class="section" id="booking">
+    <div class="section-title">احجز موعد فحص <span class="en-sub">Book an Inspection</span></div>
+    <div class="section-sub">متخصصون في خدمة أساطيل الشركات — اختر الفرع المناسب واحجز موعدك</div>
+    <div class="booking-card">
+      <div class="field">
+        <label>اسم الشركة</label>
+        <input type="text" id="companyName" placeholder="مثال: شركة النقل السريع">
+      </div>
+      <div class="field">
+        <label>اسم الشخص المسؤول</label>
+        <input type="text" id="contactName" placeholder="الاسم الكامل">
+      </div>
+      <div class="field">
+        <label>رقم الجوال</label>
+        <input type="tel" id="phone" placeholder="05xxxxxxxx">
+      </div>
+      <div class="field">
+        <label>الفرع</label>
+        <select id="branchSelect">
+          <option value="johara">فرع حي الجوهرة</option>
+          <option value="quwaiza">فرع حي قويزة</option>
+          <option value="manar">فرع حي المنار</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>التاريخ</label>
+          <input type="date" id="bookingDate">
+        </div>
+        <div class="field">
+          <label>الوقت</label>
+          <input type="time" id="bookingTime">
+        </div>
+      </div>
+      <div class="field">
+        <label>عدد المركبات / ملاحظات</label>
+        <textarea id="notes" placeholder="مثال: 5 شاحنات تحتاج فحص دوري"></textarea>
+      </div>
+      <button id="submitBooking">إرسال طلب الحجز</button>
+      <div id="bookingMsg"></div>
+    </div>
+  </div>
+
   <div class="gauge-divider">
     <span class="line"></span>
     <svg viewBox="0 0 24 24"><path fill="none" stroke="#c9a227" stroke-width="1.6" d="M12 3a9 9 0 1 0 9 9M12 3v3M12 12l4-2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.3" fill="#c9a227"/></svg>
@@ -476,45 +445,16 @@
   <div class="section">
     <div class="section-title">ساعات الدوام <span class="en-sub">Working Hours</span></div>
     <div class="hours-card">
-      <div class="hours-row">
-        <span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="hours-days">السبت <span class="en">Saturday</span></span>
-        <span class="hours-time">9:00 AM – 9:00 PM</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="hours-days">الأحد <span class="en">Sunday</span></span>
-        <span class="hours-time">9:00 AM – 9:00 PM</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="hours-days">الاثنين <span class="en">Monday</span></span>
-        <span class="hours-time">9:00 AM – 9:00 PM</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="hours-days">الثلاثاء <span class="en">Tuesday</span></span>
-        <span class="hours-time">9:00 AM – 9:00 PM</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="hours-days">الأربعاء <span class="en">Wednesday</span></span>
-        <span class="hours-time">9:00 AM – 9:00 PM</span>
-      </div>
-      <div class="hours-row">
-        <span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="hours-days">الخميس <span class="en">Thursday</span></span>
-        <span class="hours-time">9:00 AM – 9:00 PM</span>
-      </div>
-      <div class="hours-row closed">
-        <span class="hours-icon closed-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#9c2a3a" stroke-width="1.6"/><path d="M9 9l6 6m0-6l-6 6" stroke="#9c2a3a" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-        <span class="hours-days">الجمعة <span class="en">Friday</span></span>
-        <span class="hours-time closed-tag">مغلق · Closed</span>
-      </div>
+      <div class="hours-row"><span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hours-days">السبت <span class="en">Saturday</span></span><span class="hours-time">9:00 AM – 9:00 PM</span></div>
+      <div class="hours-row"><span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hours-days">الأحد <span class="en">Sunday</span></span><span class="hours-time">9:00 AM – 9:00 PM</span></div>
+      <div class="hours-row"><span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hours-days">الاثنين <span class="en">Monday</span></span><span class="hours-time">9:00 AM – 9:00 PM</span></div>
+      <div class="hours-row"><span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hours-days">الثلاثاء <span class="en">Tuesday</span></span><span class="hours-time">9:00 AM – 9:00 PM</span></div>
+      <div class="hours-row"><span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hours-days">الأربعاء <span class="en">Wednesday</span></span><span class="hours-time">9:00 AM – 9:00 PM</span></div>
+      <div class="hours-row"><span class="hours-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#e6c85a" stroke-width="1.6"/><path d="M12 7v5l3.5 2" fill="none" stroke="#e6c85a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hours-days">الخميس <span class="en">Thursday</span></span><span class="hours-time">9:00 AM – 9:00 PM</span></div>
+      <div class="hours-row closed"><span class="hours-icon closed-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#9c2a3a" stroke-width="1.6"/><path d="M9 9l6 6m0-6l-6 6" stroke="#9c2a3a" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="hours-days">الجمعة <span class="en">Friday</span></span><span class="hours-time closed-tag">مغلق · Closed</span></div>
     </div>
   </div>
 
-  <!-- GAUGE DIVIDER -->
   <div class="gauge-divider">
     <span class="line"></span>
     <svg viewBox="0 0 24 24"><path fill="none" stroke="#c9a227" stroke-width="1.6" d="M12 3a9 9 0 1 0 9 9M12 3v3M12 12l4-2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.3" fill="#c9a227"/></svg>
@@ -524,13 +464,28 @@
   <!-- CONTACTS -->
   <div class="section">
     <div class="section-title">تواصل معنا</div>
-
-    <div class="contact-card vip">
-      <div class="avatar">أع</div>
+    <div class="contact-card">
+      <div class="avatar">أح</div>
       <div class="contact-info">
         <div class="contact-role">رئيس مجلس الإدارة</div>
-        <div class="contact-name">أحمد عباس</div>
+        <div class="contact-name">أحمد حسين</div>
         <div class="contact-actions">
+          <a class="icon-btn call" href="tel:+966537995528"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg></a>
+          <a class="icon-btn whats" target="_blank" href="https://wa.me/966537995528"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:15px; margin-top:18px;">الدعم الفني</div>
+
+    <div class="contact-card">
+      <div class="avatar">دف</div>
+      <div class="contact-info">
+        <div class="contact-role">الدعم الفني</div>
+        <div class="contact-name">فرع حي الجوهرة</div>
+        <div class="contact-actions">
+          <a class="icon-btn call" href="tel:+966544736753"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg></a>
+          <a class="icon-btn whats" target="_blank" href="https://wa.me/966544736753"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg></a>
           <a class="icon-btn call" href="tel:+966541132035"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg></a>
           <a class="icon-btn whats" target="_blank" href="https://wa.me/966541132035"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg></a>
         </div>
@@ -541,16 +496,27 @@
       <div class="avatar">دف</div>
       <div class="contact-info">
         <div class="contact-role">الدعم الفني</div>
-        <div class="contact-name">تواصل مباشر مع فريق الدعم</div>
+        <div class="contact-name">فرع حي قويزة</div>
         <div class="contact-actions">
-          <a class="icon-btn call" href="tel:+966544736753"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg></a>
-          <a class="icon-btn whats" target="_blank" href="https://wa.me/966544736753"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg></a>
+          <a class="icon-btn call" href="tel:+966554512732"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg></a>
+          <a class="icon-btn whats" target="_blank" href="https://wa.me/966554512732"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <div class="avatar">دف</div>
+      <div class="contact-info">
+        <div class="contact-role">الدعم الفني</div>
+        <div class="contact-name">فرع حي المنار</div>
+        <div class="contact-actions">
+          <a class="icon-btn call" href="tel:+966500720919"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8Z"/></svg></a>
+          <a class="icon-btn whats" target="_blank" href="https://wa.me/966500720919"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1-.4-1.9-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.4.1-.5.1-.1.2-.3.4-.4.1-.1.2-.3.2-.4.1-.2 0-.4 0-.5s-.6-1.4-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.6 1.1 2.7c.1.2 1.9 3 4.7 4.1.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg></a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- GAUGE DIVIDER -->
   <div class="gauge-divider">
     <span class="line"></span>
     <svg viewBox="0 0 24 24"><path fill="none" stroke="#c9a227" stroke-width="1.6" d="M12 3a9 9 0 1 0 9 9M12 3v3M12 12l4-2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.3" fill="#c9a227"/></svg>
@@ -563,17 +529,17 @@
     <div class="map-list">
       <a class="map-item" target="_blank" href="https://maps.app.goo.gl/tthmM5rgSP7mEhsv5?g_st=ic">
         <span class="icon-btn"><svg viewBox="0 0 24 24"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.5 7 11.5 7.3 11.7.2.2.5.3.7.3s.5-.1.7-.3C13 21.5 20 15.5 20 10c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
-        <span class="map-text"><span class="t">الفرع الرئيسي – جدة</span><span class="s">افتح الموقع على خرائط جوجل</span></span>
-        <span class="map-arrow">‹</span>
-      </a>
-      <a class="map-item" target="_blank" href="https://maps.app.goo.gl/BW67skZynjooKTuu7?g_st=ic">
-        <span class="icon-btn"><svg viewBox="0 0 24 24"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.5 7 11.5 7.3 11.7.2.2.5.3.7.3s.5-.1.7-.3C13 21.5 20 15.5 20 10c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
-        <span class="map-text"><span class="t">فرع الرياض</span><span class="s">افتح الموقع على خرائط جوجل</span></span>
+        <span class="map-text"><span class="t">فرع حي الجوهرة</span><span class="s">افتح الموقع على خرائط جوجل</span></span>
         <span class="map-arrow">‹</span>
       </a>
       <a class="map-item" target="_blank" href="https://maps.app.goo.gl/nojY5Qt84Lu7MNtg8?g_st=ic">
         <span class="icon-btn"><svg viewBox="0 0 24 24"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.5 7 11.5 7.3 11.7.2.2.5.3.7.3s.5-.1.7-.3C13 21.5 20 15.5 20 10c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
-        <span class="map-text"><span class="t">موقع إضافي</span><span class="s">افتح الموقع على خرائط جوجل</span></span>
+        <span class="map-text"><span class="t">فرع حي قويزة</span><span class="s">افتح الموقع على خرائط جوجل</span></span>
+        <span class="map-arrow">‹</span>
+      </a>
+      <a class="map-item" target="_blank" href="https://maps.app.goo.gl/BW67skZynjooKTuu7?g_st=ic">
+        <span class="icon-btn"><svg viewBox="0 0 24 24"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.5 7 11.5 7.3 11.7.2.2.5.3.7.3s.5-.1.7-.3C13 21.5 20 15.5 20 10c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" fill="none" stroke="#e6c85a" stroke-width="1.6"/></svg></span>
+        <span class="map-text"><span class="t">فرع حي المنار</span><span class="s">افتح الموقع على خرائط جوجل</span></span>
         <span class="map-arrow">‹</span>
       </a>
     </div>
@@ -581,9 +547,99 @@
 
   <footer>
     <div class="fname">شركة الدعم الفني لصيانة السيارات</div>
-    <div class="fsub">صيانة السيارات والشاحنات · جدة والرياض</div>
+    <div class="fsub">صيانة السيارات والشاحنات · متخصصون في خدمة الشركات</div>
   </footer>
 
 </div>
+
+<script>
+  // ============= FIREBASE CONFIG =============
+  // استبدل هذا الكائن ببيانات مشروعك من Firebase Console
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const branches = ["johara", "quwaiza", "manar"];
+
+  function renderStatus(elId, carsWaiting){
+    const el = document.getElementById(elId);
+    el.classList.remove('status-loading','status-ok','status-warn','status-busy');
+    let cls, text;
+    if(carsWaiting === null || carsWaiting === undefined){
+      cls = 'status-loading'; text = 'لا توجد بيانات بعد';
+    } else if(carsWaiting <= 2){
+      cls = 'status-ok'; text = 'خفيف — ' + carsWaiting + ' سيارة بالانتظار';
+    } else if(carsWaiting <= 5){
+      cls = 'status-warn'; text = 'متوسط — ' + carsWaiting + ' سيارة بالانتظار';
+    } else {
+      cls = 'status-busy'; text = 'مزدحم — ' + carsWaiting + ' سيارة بالانتظار';
+    }
+    el.classList.add(cls);
+    el.querySelector('.txt').textContent = text;
+  }
+
+  branches.forEach(function(branchId){
+    db.collection('branches').doc(branchId).onSnapshot(function(doc){
+      if(doc.exists){
+        renderStatus('status-' + branchId, doc.data().carsWaiting);
+      } else {
+        renderStatus('status-' + branchId, null);
+      }
+    }, function(err){
+      console.error('Firestore error for ' + branchId, err);
+      renderStatus('status-' + branchId, null);
+    });
+  });
+
+  document.getElementById('submitBooking').addEventListener('click', function(){
+    const company = document.getElementById('companyName').value.trim();
+    const contact = document.getElementById('contactName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const branch = document.getElementById('branchSelect').value;
+    const date = document.getElementById('bookingDate').value;
+    const time = document.getElementById('bookingTime').value;
+    const notes = document.getElementById('notes').value.trim();
+    const msgEl = document.getElementById('bookingMsg');
+
+    if(!company || !contact || !phone || !date || !time){
+      msgEl.className = 'error';
+      msgEl.textContent = 'الرجاء تعبئة جميع الحقول المطلوبة';
+      return;
+    }
+
+    db.collection('bookings').add({
+      company: company,
+      contact: contact,
+      phone: phone,
+      branch: branch,
+      date: date,
+      time: time,
+      notes: notes,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'new'
+    }).then(function(){
+      msgEl.className = 'success';
+      msgEl.textContent = 'تم إرسال طلب الحجز بنجاح! سنتواصل معكم لتأكيد الموعد.';
+      document.getElementById('companyName').value = '';
+      document.getElementById('contactName').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('bookingDate').value = '';
+      document.getElementById('bookingTime').value = '';
+      document.getElementById('notes').value = '';
+    }).catch(function(err){
+      console.error(err);
+      msgEl.className = 'error';
+      msgEl.textContent = 'حدث خطأ، حاول مرة أخرى أو تواصل معنا مباشرة';
+    });
+  });
+</script>
 </body>
 </html>
