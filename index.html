@@ -599,11 +599,11 @@
     if(carsWaiting === null || carsWaiting === undefined){
       cls = 'status-loading'; text = 'لا توجد بيانات بعد';
     } else if(carsWaiting <= LIGHT_MAX){
-      cls = 'status-ok'; text = 'خفيف — ' + carsWaiting + ' سيارة بالانتظار';
+      cls = 'status-ok'; text = 'خفيف';
     } else if(carsWaiting <= MEDIUM_MAX){
-      cls = 'status-warn'; text = 'متوسط — ' + carsWaiting + ' سيارة بالانتظار';
+      cls = 'status-warn'; text = 'متوسط';
     } else {
-      cls = 'status-busy'; text = 'مزدحم — ' + carsWaiting + ' سيارة بالانتظار';
+      cls = 'status-busy'; text = 'مزدحم';
     }
     el.classList.add(cls);
     el.querySelector('.txt').textContent = text;
