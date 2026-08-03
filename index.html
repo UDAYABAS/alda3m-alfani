@@ -579,15 +579,28 @@
 
   const branches = ["johara", "quwaiza", "manar"];
 
-  function renderStatus(elId, carsWaiting){
+  // ===== إعدادات حالة الازدحام =====
+  // 5 سيارات أو أقل = خفيف | من 6 إلى 10 = متوسط | أكثر من 10 = مزدحم
+  // نافذة الاحتساب: يومان إذا كانت الحجوزات 10 فأكثر، وإلا 24 ساعة
+  const LIGHT_MAX  = 5;
+  const MEDIUM_MAX = 10;
+  const HEAVY_THRESHOLD = 10;   // عند هذا العدد فأكثر تمتد النافذة
+  const SHORT_WINDOW_HOURS = 24;
+  const LONG_WINDOW_HOURS  = 48;
+
+  const autoCounts   = {};  // العدد المحسوب تلقائياً من الحجوزات
+  const manualCounts = {};  // التعديل اليدوي من لوحة التحكم (يطغى على التلقائي)
+
+  function renderStatus(elId, carsWaiting, isManual){
     const el = document.getElementById(elId);
+    if(!el) return;
     el.classList.remove('status-loading','status-ok','status-warn','status-busy');
     let cls, text;
     if(carsWaiting === null || carsWaiting === undefined){
       cls = 'status-loading'; text = 'لا توجد بيانات بعد';
-    } else if(carsWaiting <= 2){
+    } else if(carsWaiting <= LIGHT_MAX){
       cls = 'status-ok'; text = 'خفيف — ' + carsWaiting + ' سيارة بالانتظار';
-    } else if(carsWaiting <= 5){
+    } else if(carsWaiting <= MEDIUM_MAX){
       cls = 'status-warn'; text = 'متوسط — ' + carsWaiting + ' سيارة بالانتظار';
     } else {
       cls = 'status-busy'; text = 'مزدحم — ' + carsWaiting + ' سيارة بالانتظار';
@@ -596,16 +609,70 @@
     el.querySelector('.txt').textContent = text;
   }
 
+  // التعديل اليدوي له الأولوية، وإلا يُعرض العدد التلقائي
+  function refreshBranch(branchId){
+    const manual = manualCounts[branchId];
+    if(manual !== null && manual !== undefined){
+      renderStatus('status-' + branchId, manual, true);
+    } else {
+      renderStatus('status-' + branchId, autoCounts[branchId], false);
+    }
+  }
+
+  // حساب الحجوزات النشطة لكل فرع ضمن النافذة الزمنية
+  function recalcAuto(docs){
+    const now = Date.now();
+    const perBranch = {};
+    branches.forEach(function(b){ perBranch[b] = []; });
+
+    docs.forEach(function(doc){
+      const d = doc.data();
+      if(!d || !d.branch) return;
+      if(d.status === 'done' || d.status === 'cancelled') return;
+      if(!perBranch.hasOwnProperty(d.branch)) return;
+      const created = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().getTime() : null;
+      if(created === null) return;
+      perBranch[d.branch].push(created);
+    });
+
+    branches.forEach(function(b){
+      const times = perBranch[b];
+      // نحدد النافذة: إذا كان إجمالي آخر يومين 10 فأكثر نستخدم 48 ساعة، وإلا 24 ساعة
+      const inLong = times.filter(function(t){ return now - t <= LONG_WINDOW_HOURS * 3600 * 1000; });
+      const windowHours = (inLong.length >= HEAVY_THRESHOLD) ? LONG_WINDOW_HOURS : SHORT_WINDOW_HOURS;
+      const count = times.filter(function(t){ return now - t <= windowHours * 3600 * 1000; }).length;
+      autoCounts[b] = count;
+      refreshBranch(b);
+    });
+  }
+
+  // متابعة الحجوزات لحظياً لحساب الحالة تلقائياً
+  db.collection('bookings').onSnapshot(function(snap){
+    recalcAuto(snap.docs);
+  }, function(err){
+    console.error('Bookings listener error', err);
+    branches.forEach(function(b){ refreshBranch(b); });
+  });
+
+  // إعادة الحساب كل 10 دقائق حتى تنتهي صلاحية الحجوزات القديمة تلقائياً
+  setInterval(function(){
+    db.collection('bookings').get().then(function(snap){ recalcAuto(snap.docs); }).catch(function(){});
+  }, 10 * 60 * 1000);
+
+  // متابعة التعديل اليدوي من لوحة التحكم
   branches.forEach(function(branchId){
     db.collection('branches').doc(branchId).onSnapshot(function(doc){
-      if(doc.exists){
-        renderStatus('status-' + branchId, doc.data().carsWaiting);
+      if(doc.exists && doc.data().manualOverride === true &&
+         doc.data().carsWaiting !== null && doc.data().carsWaiting !== undefined){
+        manualCounts[branchId] = doc.data().carsWaiting;
       } else {
-        renderStatus('status-' + branchId, null);
+        manualCounts[branchId] = null;
       }
+      refreshBranch(branchId);
     }, function(err){
       console.error('Firestore error for ' + branchId, err);
-      renderStatus('status-' + branchId, null);
+      manualCounts[branchId] = null;
+      refreshBranch(branchId);
     });
   });
 
