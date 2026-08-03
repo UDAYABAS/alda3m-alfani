@@ -185,6 +185,23 @@
     min-height:18px;
     font-weight:700;
   }
+  .mode-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:700;
+    padding:5px 12px; border-radius:999px;
+    margin-bottom:10px;
+  }
+  .mode-auto{ background:#e8f5ee; color:var(--ok); }
+  .mode-manual{ background:#fbf1de; color:var(--warn); }
+  .auto-note{ font-size:11.5px; color:#8a7a72; margin-top:8px; line-height:1.6; }
+  .reset-btn{
+    width:100%; margin-top:8px; padding:9px;
+    background:transparent; border:1.5px solid #d8cfc2;
+    color:#6b5c55; border-radius:10px;
+    font-family:inherit; font-size:13px; font-weight:700;
+    cursor:pointer;
+  }
+  .reset-btn:hover{ border-color:var(--gold); color:var(--maroon); }
   .save-msg.ok{ color:var(--ok); }
   .save-msg.err{ color:var(--busy); }
 
@@ -240,35 +257,44 @@
 
     <div class="branch-card">
       <div class="name">فرع حي الجوهرة</div>
+      <div class="mode-pill mode-auto" id="mode-johara">تلقائي</div>
       <div class="counter-row">
         <button class="counter-btn" data-branch="johara" data-action="minus">−</button>
         <div class="counter-value" id="count-johara">0</div>
         <button class="counter-btn" data-branch="johara" data-action="plus">+</button>
       </div>
-      <button class="save-btn" data-branch="johara">حفظ التحديث</button>
+      <button class="save-btn" data-branch="johara">حفظ التحديث (يدوي)</button>
+      <button class="reset-btn" data-branch="johara">↻ رجوع للحساب التلقائي</button>
       <div class="save-msg" id="msg-johara"></div>
+      <div class="auto-note" id="note-johara"></div>
     </div>
 
     <div class="branch-card">
       <div class="name">فرع حي قويزة</div>
+      <div class="mode-pill mode-auto" id="mode-quwaiza">تلقائي</div>
       <div class="counter-row">
         <button class="counter-btn" data-branch="quwaiza" data-action="minus">−</button>
         <div class="counter-value" id="count-quwaiza">0</div>
         <button class="counter-btn" data-branch="quwaiza" data-action="plus">+</button>
       </div>
-      <button class="save-btn" data-branch="quwaiza">حفظ التحديث</button>
+      <button class="save-btn" data-branch="quwaiza">حفظ التحديث (يدوي)</button>
+      <button class="reset-btn" data-branch="quwaiza">↻ رجوع للحساب التلقائي</button>
       <div class="save-msg" id="msg-quwaiza"></div>
+      <div class="auto-note" id="note-quwaiza"></div>
     </div>
 
     <div class="branch-card">
       <div class="name">فرع حي المنار</div>
+      <div class="mode-pill mode-auto" id="mode-manar">تلقائي</div>
       <div class="counter-row">
         <button class="counter-btn" data-branch="manar" data-action="minus">−</button>
         <div class="counter-value" id="count-manar">0</div>
         <button class="counter-btn" data-branch="manar" data-action="plus">+</button>
       </div>
-      <button class="save-btn" data-branch="manar">حفظ التحديث</button>
+      <button class="save-btn" data-branch="manar">حفظ التحديث (يدوي)</button>
+      <button class="reset-btn" data-branch="manar">↻ رجوع للحساب التلقائي</button>
       <div class="save-msg" id="msg-manar"></div>
+      <div class="auto-note" id="note-manar"></div>
     </div>
 
     <div class="section-title">أحدث طلبات الحجز</div>
@@ -326,10 +352,104 @@
     if(initialized) return;
     initialized = true;
 
+    // ===== إعدادات مطابقة للموقع =====
+    const HEAVY_THRESHOLD = 10;
+    const SHORT_WINDOW_HOURS = 24;
+    const LONG_WINDOW_HOURS  = 48;
+
+    const autoCounts = {};
+    const manualState = {};
+
+    function labelFor(n){
+      if(n <= 5) return 'خفيف';
+      if(n <= 10) return 'متوسط';
+      return 'مزدحم';
+    }
+
+    function refreshCard(branchId){
+      const modeEl  = document.getElementById('mode-' + branchId);
+      const noteEl  = document.getElementById('note-' + branchId);
+      const countEl = document.getElementById('count-' + branchId);
+      const auto = autoCounts[branchId];
+      const manual = manualState[branchId];
+
+      if(manual !== null && manual !== undefined){
+        modeEl.className = 'mode-pill mode-manual';
+        modeEl.textContent = 'يدوي — تعديلك هو الظاهر للزبائن';
+        countEl.textContent = manual;
+        noteEl.textContent = 'الحساب التلقائي حالياً: ' +
+          (auto === undefined ? '—' : auto + ' (' + labelFor(auto) + ')') +
+          ' · اضغط "رجوع للحساب التلقائي" لإلغاء تعديلك.';
+      } else {
+        modeEl.className = 'mode-pill mode-auto';
+        modeEl.textContent = 'تلقائي — محسوب من الحجوزات';
+        if(auto !== undefined) countEl.textContent = auto;
+        noteEl.textContent = 'يُحتسب من الحجوزات النشطة (24 ساعة، أو يومين عند 10 حجوزات فأكثر). ' +
+          'عدّل الرقم واضغط حفظ للتحكم يدوياً.';
+      }
+    }
+
+    // حساب العدد التلقائي من الحجوزات
+    function recalcAuto(docs){
+      const now = Date.now();
+      const perBranch = {};
+      branches.forEach(function(b){ perBranch[b] = []; });
+
+      docs.forEach(function(doc){
+        const d = doc.data();
+        if(!d || !d.branch) return;
+        if(d.status === 'done' || d.status === 'cancelled') return;
+        if(!perBranch.hasOwnProperty(d.branch)) return;
+        const created = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().getTime() : null;
+        if(created === null) return;
+        perBranch[d.branch].push(created);
+      });
+
+      branches.forEach(function(b){
+        const times = perBranch[b];
+        const inLong = times.filter(function(t){ return now - t <= LONG_WINDOW_HOURS * 3600 * 1000; });
+        const windowHours = (inLong.length >= HEAVY_THRESHOLD) ? LONG_WINDOW_HOURS : SHORT_WINDOW_HOURS;
+        autoCounts[b] = times.filter(function(t){ return now - t <= windowHours * 3600 * 1000; }).length;
+        refreshCard(b);
+      });
+    }
+
+    db.collection('bookings').onSnapshot(function(snap){
+      recalcAuto(snap.docs);
+    }, function(err){ console.error('bookings listener', err); });
+
+    // متابعة حالة التعديل اليدوي
     branches.forEach(function(branchId){
-      db.collection('branches').doc(branchId).get().then(function(doc){
-        const val = doc.exists ? (doc.data().carsWaiting || 0) : 0;
-        document.getElementById('count-' + branchId).textContent = val;
+      db.collection('branches').doc(branchId).onSnapshot(function(doc){
+        if(doc.exists && doc.data().manualOverride === true &&
+           doc.data().carsWaiting !== null && doc.data().carsWaiting !== undefined){
+          manualState[branchId] = doc.data().carsWaiting;
+        } else {
+          manualState[branchId] = null;
+        }
+        refreshCard(branchId);
+      });
+    });
+
+    // زر الرجوع للتلقائي
+    document.querySelectorAll('.reset-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const branch = btn.dataset.branch;
+        const msgEl = document.getElementById('msg-' + branch);
+        msgEl.className = 'save-msg';
+        msgEl.textContent = 'جاري الإلغاء...';
+        db.collection('branches').doc(branch).set({
+          manualOverride: false,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function(){
+          msgEl.className = 'save-msg ok';
+          msgEl.textContent = 'رجع للحساب التلقائي ✓';
+          setTimeout(function(){ msgEl.textContent = ''; }, 3000);
+        }).catch(function(err){
+          console.error(err);
+          msgEl.className = 'save-msg err';
+          msgEl.textContent = 'حدث خطأ، حاول مرة أخرى';
+        });
       });
     });
 
@@ -354,10 +474,11 @@
         msgEl.textContent = 'جاري الحفظ...';
         db.collection('branches').doc(branch).set({
           carsWaiting: val,
+          manualOverride: true,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function(){
           msgEl.className = 'save-msg ok';
-          msgEl.textContent = 'تم التحديث بنجاح ✓';
+          msgEl.textContent = 'تم التحديث يدوياً بنجاح ✓';
           setTimeout(function(){ msgEl.textContent = ''; }, 3000);
         }).catch(function(err){
           console.error(err);
